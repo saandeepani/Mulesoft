@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+
+
+	<sub-flow name="get-orders" doc:id="0051b264-68a4-49db-9126-253ef47c0979" >
+		<logger level="INFO" doc:name="Logger" doc:id="a939ecb8-272d-45ef-973d-e4eda55e3d98" message="get order called"/>
+		<set-variable value='#[attributes.queryParams.orderdate.year]' doc:name="QueryParam" doc:id="c90d4acf-5a19-49d6-b212-9d9b1e632ba3" variableName="orderYear"/>
+		<file:read doc:name="Read" doc:id="f77fa2d4-aa9e-4ed8-8546-174198d827d9" config-ref="File_Config" path="src\main\resources\5000_Sales_Records.csv"/>
+		<ee:transform doc:name="mapping" doc:id="aab7442f-4945-48a1-a809-e499062a1269" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+
+---
+payload map ((item, index) -> {
+        region: item.Region,
+        country: item.Country,
+        itemType: item.ItemType,
+        salesChannel: item.SalesChannel,
+        orderPriority: item.OrderPriority,
+        orderDate: item.OrderDate,
+        orderID: item.OrderID,
+        shipDate: item.ShipDate,
+        unitsSold: item.UnitsSold,
+        unitPrice: item.UnitPrice,
+        unitCost: item.UnitCost,
+        totalRevenue: item.TotalRevenue,
+        totalCost: item.TotalCost,
+        totalProfit: item.TotalProfit
+
+})
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Filter by date" doc:id="7bca2dd6-ce53-4ee0-88cf-5172bb4f3efb" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+
+---
+payload filter (($.orderDate.year as Date {format: "M/dd/yyyy"}) == vars.orderYear)]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="40bdb243-0146-42f6-9faf-8942a864db6a" message="#[payload]"/>
+	</sub-flow>
+	
+	<sub-flow name="get-shipments" doc:id="8c99b3ea-a8ed-4390-bb64-de65f3c09ec1" >
+		<logger level="INFO" doc:name="Logger" doc:id="f862723f-c910-4730-bce1-e5a66a7c1232" message="get shiment called"/>
+		<ee:transform doc:name="Transform Message" doc:id="66f16d92-32fd-424e-821d-0e2628b24b91" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="shipdate" ><![CDATA[%dw 2.0
+output application/json
+---
+attributes.queryParams.shipdate]]></ee:set-variable>
+				<ee:set-variable variableName="saleschannel" ><![CDATA[%dw 2.0
+output application/json
+---
+attributes.queryParams.saleschannel]]></ee:set-variable>
+				<ee:set-variable variableName="itemtype" ><![CDATA[%dw 2.0
+output application/json
+---
+
+attributes.queryParams.itemType]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<file:read doc:name="Read" doc:id="aedc92a5-9400-40db-8754-589b5deaaa7a" config-ref="File_Config" path="src\main\resources\5000_Sales_Records.csv"/>
+		<ee:transform doc:name="Transform Message" doc:id="83eeec0c-ae0b-422c-93b9-856f5593e634" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+
+---
+payload map (item, index) -> {
+        region: item.Region,
+        Country: item.Country,
+        ItemType: item.ItemType,
+        ShipDate: item.ShipDate,
+        TotalCost: item.TotalCost
+
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Filter data" doc:id="46b87fa3-b7e6-4396-8b30-b7a765ef1399" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+
+---
+payload filter ((($.ShipDate as Date) == vars.orderdate) and ($.SalesChannel == vars.saleschannel) and ($.ItemType == vars.itemtype))]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+	<sub-flow name="get-sales-report" doc:id="aa887284-7960-4170-8caa-e70107b2512a" >
+		<logger level="INFO" doc:name="Logger" doc:id="f12e0aad-2612-45c6-a1a3-17d320c4cfa3" message="get sales report called"/>
+		<set-variable value="#[attributes.queryParams.saleschannel]" doc:name="salesChannel" doc:id="93402042-4689-4236-8e24-eb745b7155e9" variableName="salesChannel"/>
+		<file:read doc:name="Read" doc:id="c918a532-23c2-484a-9611-b1b3cfc2c3b7" config-ref="File_Config" path="src\main\resources\5000_Sales_Records.csv"/>
+		<ee:transform doc:name="Transform Message" doc:id="338420af-4e8c-419d-ad71-7e4665f6eec6" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+
+---
+payload filter ($.SalesChannel == vars.salesChannel) map (item, index) -> {
+		totalNumberofOrders: 100, // not sure what values should add
+        country: item.Country,
+        orderPriority: item.OrderPriority,
+        totalRevenue: item.TotalRevenue
+
+} groupBy $.Country]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+</mule>

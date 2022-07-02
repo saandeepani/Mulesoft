@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_8c99b3ea_a8ed_4390_bb64_de65f3c09ec1_Output_Variables_itemtype = Any
+
