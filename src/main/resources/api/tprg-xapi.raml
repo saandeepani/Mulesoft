@@ -1,0 +1,82 @@
+#%RAML 1.0
+title: TPRG XAPI
+mediaType: 
+- application/json
+
+
+documentation:
+  - !include documentation/orderDoc.raml
+
+
+types:
+  CustomErrorMessage: !include datatypes/CustomErrorMessage.raml
+
+
+
+
+/orders:
+  get:
+    description: Get List of Orders in a given day
+    queryParameters:
+      orderdate:
+        required: true
+        type: date-only
+      country:
+        required: false
+        type: string
+
+    responses:
+      200:
+        body:
+          example: !include examples/OrderListExample.raml
+            
+      404:
+        body:
+          type: CustomErrorMessage
+        
+            
+    
+
+/shipments:
+  get:
+    description: Get List of Shipments in a given day
+    queryParameters:
+      shipdate:
+        required: true
+        type: date-only
+      saleschannel:
+        required: true
+        type: string
+      itemType:
+        required: true
+        type: string
+
+
+    responses:
+      200:
+        body:
+          example: !include examples/ShipmentListExample.raml
+            
+      404:
+        body:
+          type: CustomErrorMessage
+    
+
+
+
+/salesreport:
+  get:
+    description: Sales Report
+    queryParameters:
+      saleschannel:
+        required: true
+
+    responses:
+      200:
+        body:
+          example: !include /examples/SalesReportExample.raml
+            
+      404:
+        body:
+          type: CustomErrorMessage
+    
